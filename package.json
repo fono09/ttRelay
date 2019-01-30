@@ -1,0 +1,25 @@
+{
+  "name": "tt-relay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fono09/ttRelay.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fono09/ttRelay/issues"
+  },
+  "homepage": "https://github.com/fono09/ttRelay#readme",
+  "dependencies": {
+    "config": "^3.0.1",
+    "twitter": "^1.7.1",
+    "websocket": "^1.0.28"
+  }
+}
