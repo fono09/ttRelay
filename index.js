@@ -31,6 +31,10 @@ var connect = () => {
             setTimeout(connect, 5000)
         })
 
+        connection.on('ping', (cancel, data) => {
+            console.log('Ping recieved')
+        })
+
         connection.on('message', m => {
             if(m.type !== 'utf8'){
                 return
@@ -89,6 +93,6 @@ var connect = () => {
         })
     })
 
-    wsc.connect('wss://ma.fono.jp/api/v1/streaming?access_token=' + config.mastodon_access_token + '&stream=user', null)
+    wsc.connect('wss://'+ config.instance_domain + '/api/v1/streaming?access_token=' + config.mastodon_access_token + '&stream=user', null)
 }
 connect()
