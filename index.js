@@ -16,26 +16,60 @@ TARGET_ACCT =  config.target_acct
 
 
 var connect = () => {
+
+class WatchDog {
+
+    constructor(con){
+        console.log('new WatchDog')
+        this.connection = con
+        this.set()
+    }
+
+    set(){
+        console.log('set WatchDog')
+        this.timeout = setTimeout(()=>{
+            this.connection.close(this.connection.CLOSE_REASON_NORMAL, "WatchDogTimeout")
+            this.recconect()
+        }, 100000)
+    }
+
+    reset(){
+        console.log('reset WatchDog')
+        clearTimeout(this.timeout)
+        this.set()
+    }
+
+    reconnect(){
+        console.log('reconnect WatchDog')
+        setTimeout(connect, 50000)
+    }
+}
+
     wsc = new WebSocketClient()
     wsc.on('connectFailed', e => {
         console.log('Connection Error: ' + e.toString())
     })
 
     wsc.on('connect', connection => {
+
+        wd = new WatchDog(connection)
+
         connection.on('error', e => {
             console.log('Connection Error: ' + e.toString())
         })
 
         connection.on('close', () => {
             console.log('Connection Closed')
-            setTimeout(connect, 5000)
+            wd.recconect()
         })
 
         connection.on('ping', (cancel, data) => {
+            wd.reset()
             console.log('Ping recieved')
         })
 
         connection.on('message', m => {
+            wd.reset()
             if(m.type !== 'utf8'){
                 return
             }
