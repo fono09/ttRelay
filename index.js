@@ -63,7 +63,6 @@ class WatchDog {
 
         connection.on('ping', (cancel, data) => {
             wd.reset()
-            console.log('Ping recieved')
         })
 
         connection.on('message', m => {
