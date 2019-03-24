@@ -26,7 +26,6 @@ class WatchDog {
     }
 
     set(){
-        console.log('set WatchDog')
         this.timeout = setTimeout(()=>{
             this.connection.close(this.connection.CLOSE_REASON_NORMAL, "WatchDogTimeout")
             this.recconect()
@@ -34,7 +33,6 @@ class WatchDog {
     }
 
     reset(){
-        console.log('reset WatchDog')
         clearTimeout(this.timeout)
         this.set()
     }
