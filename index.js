@@ -1,8 +1,9 @@
-var WebSocketClient = require('websocket').client
-var wsc
-var config = require('config')
-var htmlDecode = require('unescape')
-
+var WebSocketClient = require('websocket').client,
+    wsc,
+    config = require('config'),
+    htmlDecode = require('unescape'),
+    redis = require("redis"),
+    util = require('util')
 
 var Twitter = require('twitter')
 var twc = new Twitter({
@@ -14,8 +15,38 @@ var twc = new Twitter({
 
 TARGET_ACCT =  config.target_acct
 
+class TTRelation {
 
-var connect = () => {
+    constructor(prefix = null){
+        if(prefix == null){
+            this.prefix = config.redis_prefix
+        }else{
+            this.prefix = prefix
+        }
+        var rdc = redis.createClient("redis://redis")
+        rdc.on("error", err => console.log("RedisError " + err))
+        this.setAsync = util.promisify(rdc.set).bind(rdc)
+        this.getAsync = util.promisify(rdc.get).bind(rdc)
+        this.keysAsync = util.promisify(rdc.keys).bind(rdc)
+    }
+
+    set(k,v){
+        console.log('TTRelation.set key,value:', k, v)
+        return this.setAsync(this.prefix + k, v, 'EX', 3600).then(() => {
+            return this.list()
+        })
+    }
+
+    get(k){
+        console.log('TTRelation.get key:', k)
+        return this.getAsync(this.prefix + k)
+    }
+
+    list(){
+        return this.keysAsync('*')
+    }
+
+}
 
 class WatchDog {
 
@@ -43,6 +74,11 @@ class WatchDog {
     }
 }
 
+var ttr = new TTRelation()
+
+var connect = () => {
+
+
     wsc = new WebSocketClient()
     wsc.on('connectFailed', e => {
         console.log('Connection Error: ' + e.toString())
@@ -58,7 +94,7 @@ class WatchDog {
 
         connection.on('close', () => {
             console.log('Connection Closed')
-            wd.recconect()
+            wd.reconnect()
         })
 
         connection.on('ping', (cancel, data) => {
@@ -79,6 +115,32 @@ class WatchDog {
                 wsEvent = null
             }
              
+            if(wsEvent.event == 'delete'){
+                var payload = wsEvent.payload
+                console.log('Receive delete event: ' + payload)
+                ttr.get(payload)
+                    .then(res => {
+                        console.log('TTRelation.get res:', res)
+                        
+                        if(res == null){
+                            console.log('Relation not found, id: ' + payload)
+                            return
+                        }else{
+                            twc.post('statuses/destroy', {id: res}, (err, response) => {
+                                if(err == null){
+                                    console.log('TweetDeleted', response)
+                                }else{
+                                    console.log('TweetDeleteFailed', JSON.stringify(err))
+                                }
+                            })
+                        }
+                    })
+                    .catch(e => {
+                        console.log('Error!', e.toString())
+                    })
+                return
+            }
+
             if(wsEvent == null || wsEvent.event != 'update'){
                 return
             }
@@ -118,7 +180,9 @@ class WatchDog {
 
             twc.post('statuses/update', {status: tweet_text}, (error, tweet, response) => {
                 if(!error){
-                    console.log(tweet)
+                    ttr.set(payload.id, tweet.id_str).then(redis.print).catch(e => console.log('Error! ', e.toString()))
+                }else{
+                    console.log('TwitterClient status/update failed', error)
                 }
             })
         })

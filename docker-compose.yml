@@ -17,3 +17,9 @@ services:
             max-size: '10m'
             max-file: '10'
         driver: json-file
+    links:
+      - "redis:6379"
+  redis:
+    image: "redis:latest"
+    volumes:
+      - ./redis:/data

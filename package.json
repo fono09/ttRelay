@@ -19,6 +19,7 @@
   "homepage": "https://github.com/fono09/ttRelay#readme",
   "dependencies": {
     "config": "^3.0.1",
+    "redis": "^2.8.0",
     "twitter": "^1.7.1",
     "unescape": "^1.0.1",
     "websocket": "^1.0.28"
