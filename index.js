@@ -59,7 +59,7 @@ class WatchDog {
     set(){
         this.timeout = setTimeout(()=>{
             this.connection.close(this.connection.CLOSE_REASON_NORMAL, "WatchDogTimeout")
-            this.recconect()
+            this.reconnect()
         }, 100000)
     }
 
