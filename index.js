@@ -70,7 +70,7 @@ class WatchDog {
 
     reconnect(){
         console.log('reconnect WatchDog')
-        setTimeout(connect, 50000)
+        setTimeout(connect, 5000)
     }
 }
 
