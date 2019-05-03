@@ -6,8 +6,7 @@ npm
 ```
 ## Getting Started
 
-1. Make 'config/default.json' file.
-2. Edit it like below.
+1. Make 'config/default.json' as follows.
 
 ```
 {
@@ -26,4 +25,4 @@ The easiest way to get mastodon token: https://takahashim.github.io/mastodon-acc
 
 Create your Twitter app : https://developer.twitter.com/
 
-3. run `docker-compose up`
+2. Run `docker-compose up`
