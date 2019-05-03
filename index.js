@@ -3,15 +3,10 @@ var WebSocketClient = require('websocket').client,
     config = require('config'),
     htmlDecode = require('unescape'),
     redis = require("redis"),
-    util = require('util')
-
-var Twitter = require('twitter')
-var twc = new Twitter({
-    consumer_key: config.consumer_key,
-    consumer_secret: config.consumer_secret,
-    access_token_key: config.access_token_key,
-    access_token_secret: config.access_token_secret
-})
+    ttr,
+    util = require('util'),
+    Twitter = require('twitter'),
+    twc
 
 TARGET_ACCT =  config.target_acct
 
@@ -24,7 +19,9 @@ class TTRelation {
             this.prefix = prefix
         }
         var rdc = redis.createClient("redis://redis")
-        rdc.on("error", err => console.log("RedisError " + err))
+        rdc.on("error", err => {
+            throw new Error("RedisError " + err)
+        })
         this.setAsync = util.promisify(rdc.set).bind(rdc)
         this.getAsync = util.promisify(rdc.get).bind(rdc)
         this.keysAsync = util.promisify(rdc.keys).bind(rdc)
@@ -50,15 +47,13 @@ class TTRelation {
 
 class WatchDog {
 
-    constructor(con){
+    constructor(){
         console.log('new WatchDog')
-        this.connection = con
         this.set()
     }
 
     set(){
         this.timeout = setTimeout(()=>{
-            this.connection.close(this.connection.CLOSE_REASON_NORMAL, "WatchDogTimeout")
             this.reconnect()
         }, 100000)
     }
@@ -74,19 +69,25 @@ class WatchDog {
     }
 }
 
-var ttr = new TTRelation()
 
 var connect = () => {
 
-
+    twc = new Twitter({
+        consumer_key: config.consumer_key,
+        consumer_secret: config.consumer_secret,
+        access_token_key: config.access_token_key,
+        access_token_secret: config.access_token_secret
+    })
+    wd = new WatchDog()
     wsc = new WebSocketClient()
+    ttr = new TTRelation()
+
     wsc.on('connectFailed', e => {
         console.log('Connection Error: ' + e.toString())
+        wd.reconnect()
     })
 
     wsc.on('connect', connection => {
-
-        wd = new WatchDog(connection)
 
         connection.on('error', e => {
             console.log('Connection Error: ' + e.toString())

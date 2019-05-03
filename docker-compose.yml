@@ -18,8 +18,9 @@ services:
             max-file: '10'
         driver: json-file
     links:
-      - "redis:6379"
+      - redis
   redis:
     image: "redis:latest"
     volumes:
       - ./redis:/data
+    restart: always
