@@ -2,7 +2,7 @@
 ```
 git clone https://github.com/fono09/ttRelay
 cd ttRelay
-npm
+docker-compose run --rm node npm
 ```
 ## Getting Started
 
