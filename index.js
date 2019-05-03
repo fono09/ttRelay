@@ -1,11 +1,13 @@
-var WebSocketClient = require('websocket').client,
-    wsc,
+const https = require('https'),
+    WebSocketClient = require('websocket').client,
     config = require('config'),
     htmlDecode = require('unescape'),
     redis = require("redis"),
-    ttr,
     util = require('util'),
-    Twitter = require('twitter'),
+    Twitter = require('twitter')
+
+var wsc,
+    ttr,
     twc
 
 TARGET_ACCT =  config.target_acct
@@ -102,8 +104,10 @@ var connect = () => {
             wd.reset()
         })
 
-        connection.on('message', m => {
+        connection.on('message', async (m) => {
             wd.reset()
+
+
             if(m.type !== 'utf8'){
                 return
             }
@@ -174,12 +178,50 @@ var connect = () => {
             var tweet_text = htmlDecode(payload.content.replace(/<br \/>/,"\n").replace(/<\/?(\w+)( (\w+)="([^"]*)")*( \/)?>/g,'').replace(url_expression, ''))
             var urls = payload.content.match(url_expression).filter((value, index, array) => array.indexOf(value) === index).filter(e => /https:\/\/ma\.fono\.jp\/tags/.test(e) == false)
 
+
+
             if(urls != null){
                 tweet_text = tweet_text + ' ' + urls.join(' ')
             }
+            var status_body = {status: tweet_text}
+
             console.log(tweet_text)
 
-            twc.post('statuses/update', {status: tweet_text}, (error, tweet, response) => {
+            var https_get = url => new Promise((resolve, reject) => {
+                https.get(url, {encoding: null}, res => {
+                    var body = []
+                    res.on('data', data => body.push(data))
+                    res.on('end', () => resolve(Buffer.concat(body)))
+                    res.on('error', () => reject(e))
+                })
+            })
+
+            var post_media = media => new Promise((resolve, reject) => {
+                twc.post('media/upload', {media}, (error, response) => {
+                    if(!error){
+                        resolve(response.media_id_string)
+                    }else{
+                        reject(error)
+                    }
+                })
+            })
+
+            var media_ids
+            if('media_attachments' in payload){
+                media_ids = await Promise.all(
+                    payload.media_attachments.map(e =>
+                        https_get(e.url)
+                            .then(media => post_media(media))
+                            .catch(err => console.log('MediaUpload failed', err.toString()))
+                    )
+                )
+                media_ids = media_ids.join(',')
+
+                status_body = Object.assign(status_body, {media_ids})
+            }
+
+            console.log({status_body})
+            twc.post('statuses/update', status_body, (error, tweet, response) => {
                 if(!error){
                     ttr.set(payload.id, tweet.id_str).then(redis.print).catch(e => console.log('Error! ', e.toString()))
                 }else{
