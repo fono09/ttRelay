@@ -51,6 +51,7 @@ class WatchDog {
 
     constructor(){
         console.log('new WatchDog')
+        connect(this)
         this.set()
     }
 
@@ -67,26 +68,23 @@ class WatchDog {
 
     reconnect(){
         console.log('reconnect WatchDog')
-        setTimeout(connect, 5000)
+        setTimeout(() => connect(this), 5000)
     }
 }
 
-
-var connect = () => {
-
+var connect = (wd) => {
+    
     twc = new Twitter({
         consumer_key: config.consumer_key,
         consumer_secret: config.consumer_secret,
         access_token_key: config.access_token_key,
         access_token_secret: config.access_token_secret
     })
-    wd = new WatchDog()
     wsc = new WebSocketClient()
     ttr = new TTRelation()
-
+    
     wsc.on('connectFailed', e => {
         console.log('Connection Error: ' + e.toString())
-        wd.reconnect()
     })
 
     wsc.on('connect', connection => {
@@ -233,4 +231,5 @@ var connect = () => {
 
     wsc.connect('wss://'+ config.instance_domain + '/api/v1/streaming?access_token=' + config.mastodon_access_token + '&stream=user', null)
 }
-connect()
+
+var wd = new WatchDog()

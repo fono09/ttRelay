@@ -19,8 +19,14 @@ services:
         driver: json-file
     links:
       - redis
+    networks:
+      - backend
   redis:
     image: "redis:latest"
     volumes:
       - ./redis:/data
     restart: always
+    networks:
+      - backend
+networks:
+  backend:
