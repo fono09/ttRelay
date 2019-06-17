@@ -174,7 +174,7 @@ var connect = (wd) => {
             var url_expression = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi;
 
             var tweet_text = htmlDecode(payload.content.replace(/<br \/>/,"\n").replace(/<\/?(\w+)( (\w+)="([^"]*)")*( \/)?>/g,'').replace(url_expression, ''))
-            var urls = payload.content.match(url_expression).filter((value, index, array) => array.indexOf(value) === index).filter(e => /https:\/\/ma\.fono\.jp\/tags/.test(e) == false)
+            var urls = payload.content.match(url_expression).filter((value, index, array) => array.indexOf(value) === index).filter(e => (new RegExp(`https://${config.instance_domain}/tags`)).test(e) == false)
 
 
 
