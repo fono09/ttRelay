@@ -6,10 +6,6 @@ const https = require('https'),
     util = require('util'),
     Twitter = require('twitter')
 
-var wsc,
-    ttr,
-    twc
-
 TARGET_ACCT =  config.target_acct
 
 class TTRelation {
@@ -51,7 +47,7 @@ class WatchDog {
 
     constructor(){
         console.log('new WatchDog')
-        connect(this)
+        session(this)
         this.set()
     }
 
@@ -68,20 +64,20 @@ class WatchDog {
 
     reconnect(){
         console.log('reconnect WatchDog')
-        setTimeout(() => connect(this), 5000)
+        setTimeout(() => session(this), 5000)
     }
 }
 
-var connect = (wd) => {
+var session = (wd) => {
     
-    twc = new Twitter({
+    let twc = new Twitter({
         consumer_key: config.consumer_key,
         consumer_secret: config.consumer_secret,
         access_token_key: config.access_token_key,
         access_token_secret: config.access_token_secret
     })
-    wsc = new WebSocketClient()
-    ttr = new TTRelation()
+    let wsc = new WebSocketClient()
+    let ttr = new TTRelation()
     
     wsc.on('connectFailed', e => {
         console.log('Connection Error: ' + e.toString())
@@ -167,15 +163,15 @@ var connect = (wd) => {
                 return
             }
 
-            if(payload.tags.find(e => e.name == 'ttr') == undefined){
+            if(payload.tags.find(e => e.name == config.tag) == undefined){
                 return
             }
 
             var url_expression = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi;
 
-            var tweet_text = htmlDecode(payload.content.replace(/<br \/>/,"\n").replace(/<\/?(\w+)( (\w+)="([^"]*)")*( \/)?>/g,'').replace(url_expression, ''))
-            var urls = payload.content.match(url_expression).filter((value, index, array) => array.indexOf(value) === index).filter(e => (new RegExp(`https://${config.instance_domain}/tags`)).test(e) == false)
+            var tweet_text = htmlDecode(payload.content).replace(/<br \/>/,"\n").replace(/<\/?(\w+)( (\w+)="([^"]*)")*( \/)?>/g,'').replace(url_expression, '').replace('#' + config.tag, '')
 
+            var urls = payload.content.match(url_expression).filter((value, index, array) => array.indexOf(value) === index).filter(e => (new RegExp(`https://${config.instance_domain}/tags`)).test(e) == false)
 
 
             if(urls != null){

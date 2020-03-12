@@ -17,7 +17,8 @@ docker-compose run --rm node npm
   "consumer_key": "Q4VJIQofa13 (Your Twitter app's Consumer key)",
   "consumer_secret": "Ppc9feafjaq329u492aafa32 (Your Twitter app's Consumer secret)",
   "access_token_key": "1234657-f3I9104JJAKi (Your Twitter app's your access token key)",
-  "access_token_secret": "FSAJ912FAaaSnhd (Your Twitter app's your access token secret)"
+  "access_token_secret": "FSAJ912FAaaSnhd (Your Twitter app's your access token secret)",
+  "tag": "ttr (Relay tag for toot)"
 }
 ``` 
 
