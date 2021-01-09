@@ -64,7 +64,7 @@ class WatchDog {
 
     reconnect(){
         console.log('reconnect WatchDog')
-        setTimeout(() => session(this), 5000)
+        throw "Process killed by WatchDog"
     }
 }
 
