@@ -169,17 +169,25 @@ var session = (wd) => {
 
             var url_expression = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi;
 
-            var tweet_text = htmlDecode(payload.content).replace(/<br \/>/,"\n").replace(/<\/?(\w+)( (\w+)="([^"]*)")*( \/)?>/g,'').replace(url_expression, '').replace('#' + config.tag, '')
+            console.log({payload})
+            console.log(payload.content)
+
+            var tweet_text = htmlDecode(
+              payload.content
+                .replace(/<br \/>/g,"\n")
+                .replace(/<\/p><p>/g, "\n\n")
+                .replace(/<\/?(\w+)( (\w+)="([^"]*)")*( \/)?>/g,'')
+                .replace(url_expression, '')
+                .replace('#' + config.tag, '')
+            )
 
             var urls = payload.content.match(url_expression).filter((value, index, array) => array.indexOf(value) === index).filter(e => (new RegExp(`https://${config.instance_domain}/tags`)).test(e) == false)
 
-
             if(urls != null){
-                tweet_text = tweet_text + ' ' + urls.join(' ')
+                tweet_text = tweet_text + "\n" + urls.join(' ')
             }
             var status_body = {status: tweet_text}
 
-            console.log(tweet_text)
 
             var https_get = url => new Promise((resolve, reject) => {
                 https.get(url, {encoding: null}, res => {
@@ -214,7 +222,6 @@ var session = (wd) => {
                 status_body = Object.assign(status_body, {media_ids})
             }
 
-            console.log({status_body})
             twc.post('statuses/update', status_body, (error, tweet, response) => {
                 if(!error){
                     ttr.set(payload.id, tweet.id_str).then(redis.print).catch(e => console.log('Error! ', e.toString()))
