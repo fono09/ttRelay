@@ -4,44 +4,10 @@ const https = require('https'),
     htmlDecode = require('unescape'),
     redis = require("redis"),
     util = require('util'),
-    Twitter = require('twitter')
+    Twitter = require('twitter'),
+    TTRelation = require('./TTRelation.js')
 
 TARGET_ACCT =  config.target_acct
-
-class TTRelation {
-
-    constructor(prefix = null){
-        if(prefix == null){
-            this.prefix = config.redis_prefix
-        }else{
-            this.prefix = prefix
-        }
-        var rdc = redis.createClient("redis://redis")
-        rdc.on("error", err => {
-            throw new Error("RedisError " + err)
-        })
-        this.setAsync = util.promisify(rdc.set).bind(rdc)
-        this.getAsync = util.promisify(rdc.get).bind(rdc)
-        this.keysAsync = util.promisify(rdc.keys).bind(rdc)
-    }
-
-    set(k,v){
-        console.log('TTRelation.set key,value:', k, v)
-        return this.setAsync(this.prefix + k, v, 'EX', 3600).then(() => {
-            return this.list()
-        })
-    }
-
-    get(k){
-        console.log('TTRelation.get key:', k)
-        return this.getAsync(this.prefix + k)
-    }
-
-    list(){
-        return this.keysAsync('*')
-    }
-
-}
 
 class WatchDog {
 
@@ -77,7 +43,7 @@ var session = (wd) => {
         access_token_secret: config.access_token_secret
     })
     let wsc = new WebSocketClient()
-    let ttr = new TTRelation()
+    let ttr = new TTRelation(redis, config)
     
     wsc.on('connectFailed', e => {
         console.log('Connection Error: ' + e.toString())

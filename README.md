@@ -27,3 +27,7 @@ The easiest way to get mastodon token: https://takahashim.github.io/mastodon-acc
 Create your Twitter app : https://developer.twitter.com/
 
 2. Run `docker-compose up`
+
+## Testing
+
+Run `docker-compose run --rm -e NODE_ENV=development node npm run test`
