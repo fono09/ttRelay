@@ -1,0 +1,11 @@
+{
+    "consumer_key":"dummy_consumer_key",
+    "consumer_secret":"dummy_consumer_secret",
+    "access_token_key":"dummy_access_token",
+    "access_token_secret":"dummy_access_token_secret",
+    "target_acct": "dummy_target_acct",
+    "mastodon_access_token":"dummy_mastodon_access_token",
+    "instance_domain":"dummy_instance_domain",
+    "redis_prefix":"ttRelay_dev_",
+    "tag": "ttr"
+}
