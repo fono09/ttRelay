@@ -54,7 +54,8 @@ class MessageProcessor {
       + this.message.event.substring(0, 1).toUpperCase()
       + this.message.event.substring(1)
 
-    if(!typeof this[methodName]) {
+    if(typeof this[methodName] !== 'function') {
+      console.log(`Method not found: MessageProcessor.prototype.${methodName}`)
       this.message = false
       return this
     }

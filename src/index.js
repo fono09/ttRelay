@@ -10,12 +10,9 @@ const WebSocketClient = require('websocket').client,
 
 TARGET_ACCT =  config.target_acct
 
-const wd = new WatchDog
-wd.reset()
-
 wss = new WsSession(
   new WebSocketClient(),
-  wd, 
+  new WatchDog(),
   new MessageProcessor(
     new Twitter({
       consumer_key: config.consumer_key,
