@@ -128,6 +128,11 @@ class MessageProcessor {
             })
         })
 
+    if ('in_reply_to_id' in payload) {
+      let in_reply_to_status_id = await this.ttr.get(payload.in_reply_to_id).catch(e => console.log('Error! ', e.toString()))
+      status_body = Object.assign(status_body, {in_reply_to_status_id})
+    }
+
     if('media_attachments' in payload){
       let media_ids = await Promise.all(
         payload.media_attachments.map(e =>
