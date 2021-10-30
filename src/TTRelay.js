@@ -1,78 +1,54 @@
-const https = require('https'),
-  htmlDecode = require('unescape')
+const MastodonEventListenerImplement = require("./MastodonEventListenerImplement.js")
 
-
-class MessageProcessor {
-
+class TTRelay extends MastodonEventListenerImplement {
+  
   constructor(
     twitterClient, 
+    https,
+    htmlDecode,
     ttRelation,
-    config
+    config,
   ) {
+    super()
     this.twc = twitterClient
+    this.https = https
+    this.htmlDecode = htmlDecode
     this.ttr = ttRelation
     this.config = config
   }
-
-  process(message) {
-    this.message = message
-    this
-      .validateType()
-      .parseAsWsEvent()
-      .processEvent()
+  
+  httpsGet(url) { 
+    return new Promise((resolve, reject) => {
+      this.https.get(url, {encoding: null}, res => {
+          var body = []
+          res.on('data', data => body.push(data))
+          res.on('end', () => resolve(Buffer.concat(body)))
+          res.on('error', () => reject(e))
+          })
+    })
   }
 
-  validateType() {
-    if(!this.message || !this.message.type) { return this }
-
-    if(this.message.type !== 'utf8') {
-      this.message = false
-    }
-    return this
+  postMedia(media) {
+    return new Promise((resolve, reject) => {
+      this.twc.post('media/upload', {media}, (error, response) => {
+        if(!error){
+          resolve(response.media_id_string)
+        }else{
+          reject(error)
+        }
+      })
+    })
   }
 
-  parseAsWsEvent() {
-    if (!this.message) { return this }
-
-    try {
-        this.message = JSON.parse(this.message.utf8Data)
-    } catch (e) {
-        this.message = false
-    }
-
-    return this
-  }
-
-  processEvent() {
-    if (!this.message) { return this }
-    if (!this.message.event) {
-      this.message = false
-      return this
-    }
-    
-    const methodName = 'on'
-      + this.message.event.substring(0, 1).toUpperCase()
-      + this.message.event.substring(1)
-
-    if(typeof this[methodName] !== 'function') {
-      console.log(`Method not found: MessageProcessor.prototype.${methodName}`)
-      this.message = false
-      return this
-    }
-
-    return this[methodName]()
-  }
-
-  async onUpdate() {
-    if (!this.message) { return this }
+  async onUpdate(...args) {
+    this.message = super.onUpdate(...args)
 
     let parsed_payload
     try {
       parsed_payload = JSON.parse(this.message.payload)
     } catch(e) {
       console.log('JSON.parse Error: ' + e.toString())
-      this.message = false
-      return this
+      return
     }
     const payload = parsed_payload
 
@@ -81,7 +57,7 @@ class MessageProcessor {
       || 'tags' in payload === false
       || !payload.tags.find(e => e.name === this.config.tag)
     ) {
-      return this
+      return
     }
 
 
@@ -90,7 +66,7 @@ class MessageProcessor {
     console.log({payload})
     console.log(payload.content)
 
-    let tweet_text = htmlDecode(
+    let tweet_text = this.htmlDecode(
       payload.content
       .replace(/<br \/>/g,"\n")
       .replace(/<\/p><p>/g, "\n\n")
@@ -109,24 +85,6 @@ class MessageProcessor {
     }
     let status_body = {status: tweet_text}
 
-    const https_get = url => new Promise((resolve, reject) => {
-        https.get(url, {encoding: null}, res => {
-            var body = []
-            res.on('data', data => body.push(data))
-            res.on('end', () => resolve(Buffer.concat(body)))
-            res.on('error', () => reject(e))
-            })
-        })
-
-    const post_media = media => new Promise((resolve, reject) => {
-        this.twc.post('media/upload', {media}, (error, response) => {
-            if(!error){
-              resolve(response.media_id_string)
-            }else{
-              reject(error)
-            }
-            })
-        })
 
     if ('in_reply_to_id' in payload) {
       let in_reply_to_status_id = await this.ttr.get(payload.in_reply_to_id).catch(e => console.log('Error! ', e.toString()))
@@ -136,8 +94,8 @@ class MessageProcessor {
     if('media_attachments' in payload){
       let media_ids = await Promise.all(
         payload.media_attachments.map(e =>
-          https_get(e.url)
-            .then(media => post_media(media))
+          this.httpsGet(e.url)
+            .then(media => this.postMedia(media))
             .catch(err => console.log('MediaUpload failed', err.toString()))
           )
         )
@@ -154,10 +112,11 @@ class MessageProcessor {
       }
     })
 
-    return this
+    return
   }
 
-  onDelete() {
+  onDelete(...args) {
+    this.message = super.onDelete(...args)
     const payload = this.message.payload
     console.log('Receive delete event: ' + payload)
     this.ttr.get(payload).then(res => {
@@ -178,8 +137,8 @@ class MessageProcessor {
     }).catch(e => {
       console.log('Error!', e.toString())
     })
-    return this
+    return
   }
 }
 
-module.exports = MessageProcessor
+module.exports = TTRelay
