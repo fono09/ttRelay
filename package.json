@@ -18,14 +18,15 @@
   },
   "homepage": "https://github.com/fono09/ttRelay#readme",
   "dependencies": {
-    "config": "^3.3.6",
+    "config": "^3.3.9",
     "redis": "^3.1.0",
-    "twitter": "^1.7.1",
+    "twitter-api-v2": "^1.15.2",
     "unescape": "^1.0.1",
-    "websocket": "^1.0.34"
+    "websocket": "^1.0.34",
+    "file-type": "^18.7.0"
   },
   "devDependencies": {
-    "jest": "^27.2.4",
+    "jest": "^27.5.1",
     "redis-mock": "^0.56.3"
   }
 }

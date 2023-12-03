@@ -28,18 +28,6 @@ class TTRelay extends MastodonEventListenerImplement {
     })
   }
 
-  postMedia(media) {
-    return new Promise((resolve, reject) => {
-      this.twc.post('media/upload', {media}, (error, response) => {
-        if(!error){
-          resolve(response.media_id_string)
-        }else{
-          reject(error)
-        }
-      })
-    })
-  }
-
   async onUpdate(...args) {
     this.message = super.onUpdate(...args)
 
@@ -80,37 +68,20 @@ class TTRelay extends MastodonEventListenerImplement {
       .filter((value, index, array) => array.indexOf(value) === index)
       .filter(e => (new RegExp(`https://${this.config.instance_domain}/tags`)).test(e) == false)
 
-    if(urls != null){
-      tweet_text = tweet_text + "\n" + urls.join(' ')
-    }
-    let status_body = {status: tweet_text}
+    const status_text = tweet_text + "\n" + urls.join(' ')
+    const in_reply_to_id = 'in_reply_to_id' in payload ?  await this.ttr.get(payload.in_reply_to_id).catch(e => console.log('Error! ', e.toString())) : null
+    const media_ids = 'media_attachments' in payload ? await Promise.all(
+      payload.media_attachments.map(e =>
+        this.httpsGet(e.url)
+          .then(media => this.twc.postMedia(media))
+          .catch(err => console.log('MediaUpload failed', err.toString()))
+      )
+    ) : null
 
-
-    if ('in_reply_to_id' in payload) {
-      let in_reply_to_status_id = await this.ttr.get(payload.in_reply_to_id).catch(e => console.log('Error! ', e.toString()))
-      status_body = Object.assign(status_body, {in_reply_to_status_id})
-    }
-
-    if('media_attachments' in payload){
-      let media_ids = await Promise.all(
-        payload.media_attachments.map(e =>
-          this.httpsGet(e.url)
-            .then(media => this.postMedia(media))
-            .catch(err => console.log('MediaUpload failed', err.toString()))
-          )
-        )
-      media_ids = media_ids.join(',')
-
-      status_body = Object.assign(status_body, {media_ids})
-    }
-
-    this.twc.post('statuses/update', status_body, (error, tweet, response) => {
-      if(!error){
-        this.ttr.set(payload.id, tweet.id_str).catch(e => console.log('Error! ', e.toString()))
-      }else{
-        console.log('TwitterClient status/update failed', error)
-      }
-    })
+    this.twc.tweet(status_text, in_reply_to_id, media_ids).then(id => {
+      this.ttr.set(payload.id, id)
+      .catch(e => console.log('Error! ', e))
+    }).catch(error => console.log('TwitterClient status/update failed', error))
 
     return
   }
@@ -126,7 +97,7 @@ class TTRelay extends MastodonEventListenerImplement {
         console.log('Relation not found, id: ' + payload)
         return
       } else {
-        this.twc.post('statuses/destroy', {id: res}, (err, response) => {
+        this.twc.deleteTweet(res).then((err, response) => {
           if(err == null){
             console.log('TweetDeleted', response)
           }else{
