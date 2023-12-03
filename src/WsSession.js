@@ -32,11 +32,12 @@ class WsSession {
 
   onConnectFailed(e) {
     console.log('Connection Error: ' + e.toString())
+    throw "Connection Error"
   }
 
   onClose() {
     console.log('Connection Closed')
-    this.wd.recoonect()
+    this.wd.reconnect()
   }
 
   onPing() {
