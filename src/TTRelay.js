@@ -3,14 +3,14 @@ const MastodonEventListenerImplement = require("./MastodonEventListenerImplement
 class TTRelay extends MastodonEventListenerImplement {
   
   constructor(
-    twitterClient, 
+    targetServiceImplements,
     https,
     htmlDecode,
     ttRelation,
     config,
   ) {
     super()
-    this.twc = twitterClient
+    this.tsis = targetServiceImplements
     this.https = https
     this.htmlDecode = htmlDecode
     this.ttr = ttRelation
@@ -35,7 +35,7 @@ class TTRelay extends MastodonEventListenerImplement {
     try {
       parsed_payload = JSON.parse(this.message.payload)
     } catch(e) {
-      console.log('JSON.parse Error: ' + e.toString())
+      console.log(`JSON.parse Error: ${e.toString()}, ${this.message.payload}`)
       return
     }
     const payload = parsed_payload
@@ -69,46 +69,48 @@ class TTRelay extends MastodonEventListenerImplement {
       .filter(e => (new RegExp(`https://${this.config.instance_domain}/tags`)).test(e) == false)
 
     const status_text = tweet_text + "\n" + urls.join(' ')
-    const in_reply_to_id = 'in_reply_to_id' in payload ?  await this.ttr.get(payload.in_reply_to_id).catch(e => console.log('Error! ', e.toString())) : null
-    const media_ids = 'media_attachments' in payload ? await Promise.all(
-      payload.media_attachments.map(e =>
-        this.httpsGet(e.url)
-          .then(media => this.twc.postMedia(media))
-          .catch(err => console.log('MediaUpload failed', err.toString()))
-      )
-    ) : null
 
-    this.twc.tweet(status_text, in_reply_to_id, media_ids).then(id => {
-      this.ttr.set(payload.id, id)
-      .catch(e => console.log('Error! ', e))
-    }).catch(error => console.log('TwitterClient status/update failed', error))
+    await Promise.all(this.tsis.map(async (tsi) => {
+      const in_reply_to_id = 'in_reply_to_id' in payload ? await this.ttr.get(`${tsi.constructor.name}_${payload.in_reply_to_id}`).catch(e => console.log('Error! ', e.toString())) : null
+      const media_ids = 'media_attachments' in payload ? await Promise.all(
+        payload.media_attachments.map(e =>
+          this.httpsGet(e.url)
+            .then(media => tsi.postMedia(media))
+            .catch(err => console.log('MediaUpload failed', err.toString()))
+        )
+      ) : null
 
-    return
+      await tsi.post(status_text, in_reply_to_id, media_ids)
+        .then(id => this.ttr.set(`${tsi.constructor.name}_${payload.id}`, id))
+        .catch(e => console.log('Error! ', e))
+    }))
   }
 
-  onDelete(...args) {
+  async onDelete(...args) {
     this.message = super.onDelete(...args)
     const payload = this.message.payload
     console.log('Receive delete event: ' + payload)
-    this.ttr.get(payload).then(res => {
-      console.log('TTRelation.get res:', res)
-
-      if(res == null){
-        console.log('Relation not found, id: ' + payload)
-        return
-      } else {
-        this.twc.deleteTweet(res).then((err, response) => {
-          if(err == null){
-            console.log('TweetDeleted', response)
-          }else{
-            console.log('TweetDeleteFailed', JSON.stringify(err))
+    await Promise.all(this.tsis.map(tsi => {
+      this.ttr.get(`${tsi.constructor.name}_${payload}`)
+        .then(res => {
+          console.log('TTRelation.get res:', res)
+          if(res == null) {
+            console.log(`Relation not found, tsi: ${tsi.constructor.name}, id: ${payload}`)
+            return
+          } else {
+            tsi.deletePost(res).then((err, response) => {
+              if(err == null) {
+                console.log('PostDeleted', response)
+              } else {
+                console.log('PostDeleteFailed', JSON.stringify(err))
+              }
+            })
           }
-        })
-      }
-    }).catch(e => {
-      console.log('Error!', e.toString())
-    })
-    return
+      })
+      .catch(e => {
+        console.log('Error!', e.toString())
+      })
+    }))
   }
 }
 

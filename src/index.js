@@ -19,7 +19,7 @@ wss = new WsSession(
   new WatchDog(),
   new MastodonEventDispatcher(
     new TTRelay(
-      new TwitterClient(config),
+      [new TwitterClient(config)],
       https,
       htmlDecode,
       new TTRelation(redis, config),
