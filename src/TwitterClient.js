@@ -1,4 +1,5 @@
 const { TwitterApi } = require('twitter-api-v2')
+const TargetServiceImplement = require('./TargetServiceImplement.js')
 
 class TwitterClient {
   constructor(config) {
@@ -10,7 +11,7 @@ class TwitterClient {
     })
   }
 
-  async tweet(text, in_reply_to_id, media_ids) {
+  async post(text, in_reply_to_id, media_ids) {
     let payload = {text}
 
     if (in_reply_to_id) {
@@ -29,7 +30,7 @@ class TwitterClient {
     }))
   }
 
-  async deleteTweet(id) {
+  async deletePost(id) {
     return this.api.v2.deleteTweet(id).then(result => new Promise((resolve, reject) => {
       if ('errors' in result) {
         reject(result.errors)
